@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--patience', type=int, default=3, help='early stopping patience')
     parser.add_argument('--min_delta', type=float, default=0.1, help='early stopping min delta')
+    parser.add_argument('--wandb_api_key', type=str, default='')
     return parser.parse_args()
 
 def main():
@@ -40,7 +41,7 @@ def main():
         scheduler = None
     early_stopper = EarlyStopper(model, model_dir, patience=args.patience, min_delta=args.min_delta)
 
-    wandb.login()
+    wandb.login(key=args.wandb_api_key)
     wandb.init(entity=args.wandb_entity, project=args.wandb_project, config=args)
     wandb.watch(model, log="gradients", log_freq=args.log_freq) 
 
