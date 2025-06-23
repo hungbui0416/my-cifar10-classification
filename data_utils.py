@@ -32,6 +32,7 @@ def get_train_val_loaders(args):
 
     return train_loader, val_loader
 
+
 def get_test_loader(args):
     test_transform = transforms.Compose([transforms.ToTensor(), 
                                          transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])])
@@ -48,3 +49,29 @@ def get_test_loader(args):
                              pin_memory=True)
 
     return test_loader, test_set.classes
+
+
+def get_hard_neg_dict(model, loader):
+    model.eval()
+
+    misclassified = []
+
+    for inputs, labels in tqdm.tqdm(loader, desc="Getting misclassified images"):
+        inputs, labels = inputs.to(args.device, non_blocking=True), labels.to(args.device, non_blocking=True)
+
+        with torch.no_grad():
+            logits = model(inputs)
+            preds = logits.argmax(dim=1)
+
+            mis_idx = (preds != labels).nonzero(as_tuple=True)[0]
+
+            for i in mis_idx:
+                misclassified.append((inputs[i].cpu(), labels[i].cpu(), preds[i].cpu()))  # (img, true_label, predicted_label)
+
+    hard_neg_dict = {}
+    for img, true_label, pred_label in misclassified:
+        if pred_label.item() not in hard_neg_dict:
+            hard_neg_dict[pred_label.item()] = []
+        hard_neg_dict[pred_label.item()].append((img, true_label.item()))
+
+    return hard_neg_dict
